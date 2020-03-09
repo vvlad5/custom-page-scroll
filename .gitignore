@@ -1,0 +1,9 @@
+node_modules
+.tmp
+.sass-cache
+.idea
+npm-debug.log
+dist/*
+logs
+.DS_Store
+package-lock.json

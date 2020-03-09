@@ -24,8 +24,8 @@ window.addEventListener('wheel', ({ deltaY }) => {
 
 function customSmoothScroll(newDirection) {
   if (newDirection === direction) {
-    distance += STEP;
     duration += DURATION;
+    distance += STEP;
     return null;
   } else {
     distance = STEP;
