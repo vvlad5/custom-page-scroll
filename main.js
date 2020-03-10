@@ -6,62 +6,83 @@
   });
 });
 
-const timingFn = t => t * (2 - t);
-
 const STEP = 10;
-const DURATION = 30;
-let busy = false;
-let direction = null;
-let distance = null;
-let duration = null;
-let startTime = null;
-let startPos = null;
+const DURATION = 60;
+const TIMING_FN = t => t * (2 - t);
+
+let trottle = false;
+
+let scrollDirection = null;
+let scrollDistance = null;
+let scrollDuration = null;
+let scrollStartTime = null;
+let scrollStartPos = null;
 let scrollId = null;
 
+let accelerationDistance = STEP;
+let accelerationDuration = DURATION;
+let accelerationStartTime = null;
+let accelerationId = null;
+
 window.addEventListener('wheel', ({ deltaY }) => {
+  if (trottle) return null;
+  trottle = true;
   customSmoothScroll(deltaY > 0 ? 1 : -1);
+  customSmoothAcceleration();
+  setTimeout(() => {
+    trottle = false;
+  }, 150);
 });
 
-function customSmoothScroll(newDirection) {
-  if (newDirection === direction) {
-    duration += DURATION;
-    distance += STEP;
-    return null;
-  } else {
-    distance = STEP;
-    duration = DURATION;
-    direction = newDirection;
-    cancelAnimationFrame(scrollId);
-  }
+function customSmoothScroll (newScrollDirection) {
+  scrollDistance = STEP;
+  scrollDuration = DURATION;
+  scrollDirection = newScrollDirection;
 
-  busy = true;
-  startPos = pageYOffset;
-  startTime = performance.now();
+  scrollStartPos = pageYOffset;
+  scrollStartTime = performance.now();
+  cancelAnimationFrame(scrollId);
   scrollId = requestAnimationFrame(animateScroll);
 }
 
-function animateScroll(currTime) {
-  let timeFraction = (currTime - startTime) / duration;
+function animateScroll (currTime) {
+  let timeFraction = (currTime - scrollStartTime) / scrollDuration;
   if (timeFraction > 1) timeFraction = 1;
 
-  const progress = startPos + timingFn(timeFraction) * distance * direction;
+  let progress = scrollStartPos + TIMING_FN(timeFraction) * scrollDistance * scrollDirection;
+  progress = progress.toFixed(2);
   scrollTo(0, progress);
 
   if (timeFraction < 1) {
-    requestAnimationFrame(animateScroll);
+    scrollId = requestAnimationFrame(animateScroll);
   } else {
-    distance = null;
-    duration = null;
-    startTime = null;
-    direction = null;
-    startPos = pageYOffset;
-    busy = false;
+    scrollDistance = null;
+    scrollDuration = null;
+    scrollStartTime = null;
+    scrollDirection = null;
+    scrollStartPos = pageYOffset;
   }
 }
 
-// function nativeSmoothScroll() {
-//   scrollBy({
-//     top: step * direction,
-//     behavior: 'smooth',
-//   });
-// }
+function customSmoothAcceleration () {
+  accelerationStartTime = performance.now();
+  cancelAnimationFrame(accelerationId);
+  accelerationId = requestAnimationFrame(animateAcceleration);
+}
+
+function animateAcceleration (currTime) {
+  let timeFraction = (currTime - accelerationStartTime) / accelerationDuration;
+  if (timeFraction > 1) timeFraction = 1;
+
+  let progress = TIMING_FN(timeFraction) * accelerationDistance;
+  progress = progress.toFixed(2);
+  scrollDuration += DURATION * progress;
+  scrollDistance += STEP * progress;
+
+  if (timeFraction < 1) {
+    accelerationId = requestAnimationFrame(animateAcceleration);
+  } else {
+    accelerationStartTime = null;
+    accelerationId = null;
+  }
+}
